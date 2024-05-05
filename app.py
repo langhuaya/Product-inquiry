@@ -185,7 +185,7 @@ def query_data(product_name):
             results.append({
                 'source': 'Aicaigou',
                 'name': item['fullName'],
-                'price': item['price'],
+                'price': item['price']+item['pCurrency'],
                 'link': item['jUrl']
             })
 
