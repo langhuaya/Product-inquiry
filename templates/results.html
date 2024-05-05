@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Results</h1>
+    {% if data %}
+        <table>
+            <tr>
+                <th>Source</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Link</th>
+            </tr>
+            {% for item in data %}
+            <tr>
+                <td>{{ item.source }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.price }}</td>
+                <td><a href="{{ item.link }}" target="_blank">View Product</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No results found.</p>
+    {% endif %}
+    <a href="/">New Search</a>
+</body>
+</html>
