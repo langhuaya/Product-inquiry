@@ -2,6 +2,12 @@ from flask import Flask, request, jsonify, render_template
 app = Flask(__name__)
 import requests,re,json,tk
 from bs4 import BeautifulSoup
+import time
+
+def get_current_timestamp():
+    # 获取当前时间的时间戳（以毫秒为单位）
+    timestamp = int(time.time() * 1000)
+    return timestamp
 
 
 def get_tequipment(Product_name):
@@ -38,48 +44,63 @@ def get_tequipment(Product_name):
 
 
 
-def get_aicaigou(Product_name):
-    try:
-        cookies = {}
+# def get_aicaigou(Product_name):
+#     try:
+#         cookies = {}
+#
+#         headers = {
+#             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+#             'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+#             'priority': 'u=0, i',
+#             'referer': 'https://b2b.baidu.com/s?q=MIT300&from=sug&fid=83951616%2C1714445010442&pi=b2b.index.sug...5745581331674132',
+#             'sec-ch-ua': '"Chromium";v="124", "Microsoft Edge";v="124", "Not-A.Brand";v="99"',
+#             'sec-ch-ua-mobile': '?0',
+#             'sec-ch-ua-platform': '"Windows"',
+#             'sec-fetch-dest': 'document',
+#             'sec-fetch-mode': 'navigate',
+#             'sec-fetch-site': 'same-origin',
+#             'sec-fetch-user': '?1',
+#             'upgrade-insecure-requests': '1',
+#             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
+#         }
+#
+#         params = {
+#             'q': Product_name,
+#             'from': 'search',
+#             'fid': '83951616,1714445010442',
+#             'pi': 'b2b.s.search...8510291871107560',
+#         }
+#
+#         response = requests.get('https://b2b.baidu.com/s', params=params, cookies=cookies, headers=headers).text
+#         # print(response)
+#         html_data = response
+#
+#         # 使用正则表达式提取 JSON 数据
+#         pattern = re.compile(r'window\.data\s*=\s*(\{.*?\});', re.DOTALL)
+#         match = pattern.search(html_data)
+#         if match:
+#             json_text = match.group(1)
+#             json_data = json.loads(json_text)
+#             # print(json_data)
+#             return  json_data
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+#         return None
+def get_tester(Product_name):
+    cookies = {
+    }
 
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'priority': 'u=0, i',
-            'referer': 'https://b2b.baidu.com/s?q=MIT300&from=sug&fid=83951616%2C1714445010442&pi=b2b.index.sug...5745581331674132',
-            'sec-ch-ua': '"Chromium";v="124", "Microsoft Edge";v="124", "Not-A.Brand";v="99"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
-        }
+    headers = {
+    }
 
-        params = {
-            'q': Product_name,
-            'from': 'search',
-            'fid': '83951616,1714445010442',
-            'pi': 'b2b.s.search...8510291871107560',
-        }
+    params = {
+        'search': Product_name,
+        '_': str(get_current_timestamp()),
+    }
 
-        response = requests.get('https://b2b.baidu.com/s', params=params, cookies=cookies, headers=headers).text
-        # print(response)
-        html_data = response
+    response = requests.get('https://www.tester.co.uk/search/es/index', params=params, cookies=cookies, headers=headers).json()
+    return response["items"]
 
-        # 使用正则表达式提取 JSON 数据
-        pattern = re.compile(r'window\.data\s*=\s*(\{.*?\});', re.DOTALL)
-        match = pattern.search(html_data)
-        if match:
-            json_text = match.group(1)
-            json_data = json.loads(json_text)
-            # print(json_data)
-            return  json_data
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
 
 def get_instrumart(Product_name):
     cookies = {}
@@ -167,8 +188,9 @@ def query_data(product_name):
     # 假设这里是你的数据抓取逻辑
     # 这里只是一个示例，你应该根据实际返回的数据结构来调整
     data_tequipment = get_tequipment(product_name)
-    data_aicaigou = get_aicaigou(product_name)
+    # data_aicaigou = get_aicaigou(product_name)
     data_instrumart = get_instrumart(product_name)
+    data_tester_list = get_tester(product_name)
 
     results = []
     if data_tequipment and "Products" in data_tequipment:
@@ -180,14 +202,14 @@ def query_data(product_name):
                 'link': f"https://www.tequipment.net{item['URL']}"
             })
 
-    if data_aicaigou and "productList" in data_aicaigou:
-        for item in data_aicaigou["productList"]:
-            results.append({
-                'source': 'Aicaigou',
-                'name': item['fullName'],
-                'price': item['price']+item['pCurrency'],
-                'link': item['jUrl']
-            })
+    # if data_aicaigou and "productList" in data_aicaigou:
+    #     for item in data_aicaigou["productList"]:
+    #         results.append({
+    #             'source': 'Aicaigou',
+    #             'name': item['fullName'],
+    #             'price': item['price']+item['pCurrency'],
+    #             'link': item['jUrl']
+    #         })
 
     if data_instrumart:
         for product in data_instrumart:
@@ -200,6 +222,17 @@ def query_data(product_name):
                 'name': name,
                 'price': price,
                 'link': full_link
+            })
+    if data_tester_list:
+        for data_tester in data_tester_list:
+            print(f"产品标题：{data_tester['name']}")
+            print(f"产品价格: {data_tester['price_label']}")
+            print(f"产品链接: https://www.tester.co.uk{data_tester['url']}")
+            results.append({
+                'source': 'tester',
+                'name': data_tester['name'],
+                'price': data_tester['price_label'],
+                'link': f"https://www.tester.co.uk{data_tester['url']}"
             })
 
     return results
