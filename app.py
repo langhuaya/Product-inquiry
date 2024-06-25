@@ -203,7 +203,7 @@ def query_data(product_name):
             results.append({
                 'source': 'testmeter',
                 'name': data_testmeter['item_name'],
-                'price': f"{data_testmeter['price']}USD",
+                'price': f"${data_testmeter['price']}",
                 'link': data_testmeter['item_url']
             })
     return results
@@ -212,12 +212,12 @@ def query_data(product_name):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    data = None
     if request.method == 'POST':
         product_name = request.form['product_name']
         if product_name:
             data = query_data(product_name)
-            return render_template('results.html', data=data)
-    return render_template('index.html')
+    return render_template('index.html', data=data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
