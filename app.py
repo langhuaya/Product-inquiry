@@ -96,10 +96,72 @@ def get_instrumart(Product_name):
         print(f"Error fetching data from Instrumart: {e}")
         return None
 
+
+def get_testmeter(product_name):
+    try:
+        cookies = {
+        }
+
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'priority': 'u=0, i',
+            'referer': 'https://www.testequipmentdepot.com/',
+            'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+        }
+
+        params = {
+            'q': product_name,
+        }
+
+        response = requests.get(
+            'https://www.testequipmentdepot.com/catalogsearch/result/',
+            params=params,
+            cookies=cookies,
+            headers=headers,
+        ).text
+
+        # 使用BeautifulSoup解析HTML内容
+        soup = BeautifulSoup(response, 'html.parser')
+
+        # 查找所有<script type="text/x-magento-init">标签
+        scripts = soup.find_all('script', {'type': 'text/x-magento-init'})
+
+        # 提取JSON数据并解析
+        data_testmeter_list = []
+        for script in scripts:
+            json_data = script.string.strip()
+            data_testmeter_list.append(json.loads(json_data))
+
+        return \
+        data_testmeter_list[1]["*"]["DecimaDigital_DataLayer/js/view/google-tag-manager"]["items"][1]["ecommerce"][
+            "items"]
+
+    except requests.RequestException as e:
+        print(f"Network-related error occurred: {e}")
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error occurred: {e}")
+    except IndexError as e:
+        print(f"Index error occurred: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    return None
+
+
 def query_data(product_name):
     data_tequipment = get_tequipment(product_name)
     data_instrumart = get_instrumart(product_name)
     data_tester_list = get_tester(product_name)
+    data_testmeter_list = get_testmeter(product_name)
 
     results = []
     if data_tequipment and "Products" in data_tequipment:
@@ -133,7 +195,20 @@ def query_data(product_name):
                 'link': f"https://www.tester.co.uk{data_tester['url']}"
             })
 
+    if data_testmeter_list:
+        for data_testmeter in data_testmeter_list:
+            print(f"产品标题: {data_testmeter['item_name']}")
+            print(f"产品价格: {data_testmeter['price']}USD")
+            print(f"产品链接: {data_testmeter['item_url']}")
+            results.append({
+                'source': 'testmeter',
+                'name': data_testmeter['item_name'],
+                'price': f"{data_testmeter['price']}USD",
+                'link': data_testmeter['item_url']
+            })
     return results
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
