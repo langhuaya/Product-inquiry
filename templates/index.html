@@ -2,13 +2,143 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Product Query</title>
+    <title>仪器查询系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 12px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .no-results {
+            text-align: center;
+            color: #888888;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s ease infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
 </head>
 <body>
-    <h1>Product Search</h1>
-    <form method="post">
-        <input type="text" name="product_name" placeholder="Enter product name" required>
-        <button type="submit">Search</button>
-    </form>
+    <div class="container">
+        <h1>仪器查询系统</h1>
+        <form method="post" onsubmit="showLoading()">
+            <input type="text" name="product_name" placeholder="输入仪器的型号" required>
+            <button type="submit">查询</button>
+        </form>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        {% if data %}
+            <table>
+                <tr>
+                    <th>平台</th>
+                    <th>产品名称</th>
+                    <th>产品价格</th>
+                    <th>产品链接</th>
+                </tr>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item.source }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.price }}</td>
+                    <td><a href="{{ item.link }}" target="_blank">View Product</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p class="no-results">No results found.</p>
+        {% endif %}
+    </div>
 </body>
 </html>
