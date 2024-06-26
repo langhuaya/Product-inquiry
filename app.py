@@ -4,6 +4,7 @@ import re
 import json
 from bs4 import BeautifulSoup
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 
@@ -253,76 +254,84 @@ def get_transcat(Product_name):
 
     return product_details
 def query_data(product_name):
-    data_tequipment = get_tequipment(product_name)
-    data_instrumart = get_instrumart(product_name)
-    data_tester_list = get_tester(product_name)
-    data_test_meter_list = get_test_meter(product_name)
-    data_testequipmentdepot_list = get_testequipmentdepot(product_name)
-    data_transcat_list = get_transcat(product_name)
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        future_tequipment = executor.submit(get_tequipment, product_name)
+        future_instrumart = executor.submit(get_instrumart, product_name)
+        future_tester = executor.submit(get_tester, product_name)
+        future_test_meter = executor.submit(get_test_meter, product_name)
+        future_testequipmentdepot = executor.submit(get_testequipmentdepot, product_name)
+        future_transcat = executor.submit(get_transcat, product_name)
 
-    results = []
-    if data_tequipment and "Products" in data_tequipment:
-        for item in data_tequipment["Products"]:
-            results.append({
-                'source': 'TEquipment',
-                'name': item['ProductName'],
-                'price': item['Price'],
-                'link': f"https://www.tequipment.net{item['URL']}"
-            })
+        results = []
 
-    if data_instrumart:
-        for product in data_instrumart:
-            name = product.find('div', class_='product-name').text.strip()
-            price = product.find('div', class_='product-price').text.strip()
-            link = product.find('a')['href']
-            full_link = 'https://www.instrumart.com' + link
-            results.append({
-                'source': 'Instrumart',
-                'name': name,
-                'price': price,
-                'link': full_link
-            })
+        data_tequipment = future_tequipment.result()
+        data_instrumart = future_instrumart.result()
+        data_tester_list = future_tester.result()
+        data_test_meter_list = future_test_meter.result()
+        data_testequipmentdepot_list = future_testequipmentdepot.result()
+        data_transcat_list = future_transcat.result()
+        if data_tequipment and "Products" in data_tequipment:
+            for item in data_tequipment["Products"]:
+                results.append({
+                    'source': 'TEquipment',
+                    'name': item['ProductName'],
+                    'price': item['Price'],
+                    'link': f"https://www.tequipment.net{item['URL']}"
+                })
 
-    if data_tester_list:
-        for data_tester in data_tester_list:
-            results.append({
-                'source': 'Tester',
-                'name': data_tester['name'],
-                'price': data_tester['price_label'],
-                'link': f"https://www.tester.co.uk{data_tester['url']}"
-            })
-    if data_test_meter_list:
-        for data_test_meter in data_test_meter_list:
-            # print(data_test_meter["name"])
-            # print(data_test_meter["url"])
-            # print(data_test_meter["price"]["USD"]["default_formated"])
-            results.append({
-                'source': 'test_meter',
-                'name': data_test_meter['name'],
-                'price': data_test_meter["price"]["USD"]["default_formated"],
-                'link': data_test_meter["url"]
-            })
+        if data_instrumart:
+            for product in data_instrumart:
+                name = product.find('div', class_='product-name').text.strip()
+                price = product.find('div', class_='product-price').text.strip()
+                link = product.find('a')['href']
+                full_link = 'https://www.instrumart.com' + link
+                results.append({
+                    'source': 'Instrumart',
+                    'name': name,
+                    'price': price,
+                    'link': full_link
+                })
 
-    if data_testequipmentdepot_list:
-        for data_testmeter in data_testequipmentdepot_list:
-            # print(f"产品标题: {data_testmeter['item_name']}")
-            # print(f"产品价格: {data_testmeter['price']}USD")
-            # print(f"产品链接: {data_testmeter['item_url']}")
-            results.append({
-                'source': 'testequipmentdepot',
-                'name': data_testmeter['item_name'],
-                'price': f"${data_testmeter['price']}",
-                'link': data_testmeter['item_url']
-            })
-    if data_transcat_list:
-        for data_transcat in data_transcat_list:
-            results.append({
-                'source': 'transcat',
-                'name': data_transcat['title'],
-                'price': data_transcat['price'],
-                'link': data_transcat['url']
-            })
-    return results
+        if data_tester_list:
+            for data_tester in data_tester_list:
+                results.append({
+                    'source': 'Tester',
+                    'name': data_tester['name'],
+                    'price': data_tester['price_label'],
+                    'link': f"https://www.tester.co.uk{data_tester['url']}"
+                })
+        if data_test_meter_list:
+            for data_test_meter in data_test_meter_list:
+                # print(data_test_meter["name"])
+                # print(data_test_meter["url"])
+                # print(data_test_meter["price"]["USD"]["default_formated"])
+                results.append({
+                    'source': 'test_meter',
+                    'name': data_test_meter['name'],
+                    'price': data_test_meter["price"]["USD"]["default_formated"],
+                    'link': data_test_meter["url"]
+                })
+
+        if data_testequipmentdepot_list:
+            for data_testmeter in data_testequipmentdepot_list:
+                # print(f"产品标题: {data_testmeter['item_name']}")
+                # print(f"产品价格: {data_testmeter['price']}USD")
+                # print(f"产品链接: {data_testmeter['item_url']}")
+                results.append({
+                    'source': 'testequipmentdepot',
+                    'name': data_testmeter['item_name'],
+                    'price': f"${data_testmeter['price']}",
+                    'link': data_testmeter['item_url']
+                })
+        if data_transcat_list:
+            for data_transcat in data_transcat_list:
+                results.append({
+                    'source': 'transcat',
+                    'name': data_transcat['title'],
+                    'price': data_transcat['price'],
+                    'link': data_transcat['url']
+                })
+        return results
 
 
 
