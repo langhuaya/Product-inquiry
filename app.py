@@ -291,8 +291,69 @@ def get_testequity(Product_name):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching product data: {e}")
         return []  # 出错时返回空列表，或者根据需求返回其他默认值
+def get_grainger(Product_name):
+    cookies = {}
+
+    headers = {
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Referer': 'https://www.grainger.com/product/MEGGER-Megohmmeter-100-kiloohm-to-40D468?searchQuery=mit525&searchBar=true',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'x-dtpc': 'ignore',
+    }
+
+    params = {
+        't': Product_name,
+        'tae': 'true',
+        '_': str(get_current_timestamp()),
+    }
+
+    try:
+        response = requests.get('https://www.grainger.com/tap', params=params, cookies=cookies, headers=headers)
+        response.raise_for_status()
+        response_json = response.json()
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+        return None
+    except ValueError as e:
+        print(f"Error parsing JSON: {e}")
+        return None
+
+    try:
+        product_url = 'https://www.grainger.com' + response_json[0]["url"]
+        product_response = requests.get(product_url, headers=headers)
+        product_response.raise_for_status()
+        product_page = product_response.text
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+        return None
+
+    pattern = re.compile(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', re.DOTALL)
+    match = pattern.search(product_page)
+
+    if match:
+        json_str = match.group(1).strip()
+        try:
+            data_json = json.loads(json_str)
+            return data_json
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return None
+    else:
+        print("No JSON found in the HTML data.")
+        return None
+
+
 def query_data(product_name):
-    with ThreadPoolExecutor(max_workers=7) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         future_tequipment = executor.submit(get_tequipment, product_name)
         future_instrumart = executor.submit(get_instrumart, product_name)
         future_tester = executor.submit(get_tester, product_name)
@@ -300,6 +361,7 @@ def query_data(product_name):
         future_testequipmentdepot = executor.submit(get_testequipmentdepot, product_name)
         future_transcat = executor.submit(get_transcat, product_name)
         future_testequity = executor.submit(get_testequity, product_name)
+        future_grainger = executor.submit(get_grainger, product_name)
 
         results = []
 
@@ -310,6 +372,7 @@ def query_data(product_name):
         data_testequipmentdepot_list = future_testequipmentdepot.result()
         data_transcat_list = future_transcat.result()
         data_testequity_list = future_testequity.result()
+        data_grainger_list = future_grainger.result()
         if data_tequipment and "Products" in data_tequipment:
             for item in data_tequipment["Products"]:
                 results.append({
@@ -379,6 +442,14 @@ def query_data(product_name):
                     'price': data_testequity['unitListPriceDisplay'],
                     'link': "https://www.testequity.com/"+data_testequity["canonicalUrl"]
                 })
+        if data_grainger_list:
+            data_grainger = data_grainger_list
+            results.append({
+                'source': 'grainger',
+                'name': data_grainger['model']+" "+data_grainger["name"],
+                'price': "$"+data_grainger['offers']["price"],
+                'link': data_grainger['offers']["url"]
+            })
         return results
 
 
