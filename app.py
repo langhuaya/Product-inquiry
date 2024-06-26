@@ -97,7 +97,7 @@ def get_instrumart(Product_name):
         return None
 
 
-def get_testmeter(product_name):
+def get_testequipmentdepot(product_name):
     try:
         cookies = {
         }
@@ -156,12 +156,109 @@ def get_testmeter(product_name):
 
     return None
 
+def get_test_meter(Product_name):
+    headers = {
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Origin': 'https://www.test-meter.co.uk',
+        'Referer': 'https://www.test-meter.co.uk/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+        'content-type': 'application/x-www-form-urlencoded',
+        'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'x-algolia-api-key': 'ZTdhYzYwYjQ2YWJkMDQzNjcyNjhhMWEwY2FkOGUyYzI3ODBlZDU2YzNjZGVlMWI3NDBiNGI3MzcwOGE3N2ZhN3RhZ0ZpbHRlcnM9',
+        'x-algolia-application-id': '3JOKTRZ7OO',
+    }
 
+    data = '{"requests":[{"indexName":"magento_default_products","query":"'+Product_name+'","params":"hitsPerPage=6&highlightPreTag=__aa-highlight__&highlightPostTag=__%2Faa-highlight__&numericFilters=visibility_search%3D1&ruleContexts=%5B%22magento_filters%22%2C%22%22%5D&clickAnalytics=true"}]}'
+
+    try:
+        response = requests.post(
+            'https://3joktrz7oo-2.algolianet.com/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.5.1)%3B%20Browser%3B%20autocomplete-core%20(1.6.3)%3B%20autocomplete-js%20(1.6.3)',
+            headers=headers,
+            data=data,
+        ).json()
+        return response["results"][0]["hits"]
+    except requests.exceptions.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        return []
+    except KeyError as e:
+        print(f"Key error: {e}")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+def get_transcat(Product_name):
+    cookies = {}
+
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'priority': 'u=1, i',
+        'referer': 'https://www.transcat.com/',
+        'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+        'x-requested-with': 'XMLHttpRequest',
+    }
+
+    params = {
+        'q': Product_name,
+        '_': str(get_current_timestamp()),
+    }
+
+    product_details = []
+
+    def extract_price(html_content):
+        # Define regex patterns
+        call_for_price_pattern = r'<div class="call-for-price">Call for price</div>'
+        price_pattern = r'<span class="price">\$(.*?)</span>'
+
+        # Search for matches
+        call_for_price_match = re.search(call_for_price_pattern, html_content)
+        price_match = re.search(price_pattern, html_content)
+
+        # Extract price information
+        if call_for_price_match:
+            return "Call for price"
+        elif price_match:
+            price = price_match.group(1)
+            return f"${price}"
+        else:
+            return "Price not found"
+
+    try:
+        response = requests.get('https://www.transcat.com/search/ajax/suggest/', params=params, cookies=cookies, headers=headers).json()
+        product_entries = [entry for entry in response if entry['type'] == 'product']
+
+        for product in product_entries:
+            product_detail = {
+                'title': product['title'],
+                'price': extract_price(product['price']),
+                'url': product['url']
+            }
+            product_details.append(product_detail)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    return product_details
 def query_data(product_name):
     data_tequipment = get_tequipment(product_name)
     data_instrumart = get_instrumart(product_name)
     data_tester_list = get_tester(product_name)
-    data_testmeter_list = get_testmeter(product_name)
+    data_test_meter_list = get_test_meter(product_name)
+    data_testequipmentdepot_list = get_testequipmentdepot(product_name)
+    data_transcat_list = get_transcat(product_name)
 
     results = []
     if data_tequipment and "Products" in data_tequipment:
@@ -194,17 +291,36 @@ def query_data(product_name):
                 'price': data_tester['price_label'],
                 'link': f"https://www.tester.co.uk{data_tester['url']}"
             })
-
-    if data_testmeter_list:
-        for data_testmeter in data_testmeter_list:
-            print(f"产品标题: {data_testmeter['item_name']}")
-            print(f"产品价格: {data_testmeter['price']}USD")
-            print(f"产品链接: {data_testmeter['item_url']}")
+    if data_test_meter_list:
+        for data_test_meter in data_test_meter_list:
+            # print(data_test_meter["name"])
+            # print(data_test_meter["url"])
+            # print(data_test_meter["price"]["USD"]["default_formated"])
             results.append({
-                'source': 'testmeter',
+                'source': 'test_meter',
+                'name': data_test_meter['name'],
+                'price': data_test_meter["price"]["USD"]["default_formated"],
+                'link': data_test_meter["url"]
+            })
+
+    if data_testequipmentdepot_list:
+        for data_testmeter in data_testequipmentdepot_list:
+            # print(f"产品标题: {data_testmeter['item_name']}")
+            # print(f"产品价格: {data_testmeter['price']}USD")
+            # print(f"产品链接: {data_testmeter['item_url']}")
+            results.append({
+                'source': 'testequipmentdepot',
                 'name': data_testmeter['item_name'],
                 'price': f"${data_testmeter['price']}",
                 'link': data_testmeter['item_url']
+            })
+    if data_transcat_list:
+        for data_transcat in data_transcat_list:
+            results.append({
+                'source': 'transcat',
+                'name': data_transcat['title'],
+                'price': data_transcat['price'],
+                'link': data_transcat['url']
             })
     return results
 
