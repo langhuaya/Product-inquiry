@@ -251,16 +251,55 @@ def get_transcat(Product_name):
             product_details.append(product_detail)
     except Exception as e:
         print(f"An error occurred: {e}")
-
     return product_details
+def get_testequity(Product_name):
+    cookies = {}  # 如果有需要，可以在这里设置cookies
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'cache-control': 'max-age=0',
+        'if-modified-since': 'Wed, 26 Jun 2024 07:18:13 GMT',
+        'if-none-match': 'W/"ab296c70221041249e9856806b84821a"',
+        'priority': 'u=1, i',
+        'referer': 'https://www.testequity.com/Search?query=megger%20mit515',
+        'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+        'x-requested-with': 'XMLHttpRequest',
+    }
+    params = {
+        'includeSuggestions': 'true',
+        'search': Product_name,
+        'expand': 'attributes,facets,variantTraits,badges,properties',
+        'applyPersonalization': 'true',
+        'includeAttributes': 'includeOnProduct'
+    }
+
+    try:
+        response = requests.get(
+            'https://www.testequity.com/api/v2/products',
+            params=params,
+            cookies=cookies,
+            headers=headers,
+        )
+        response.raise_for_status()  # 如果请求不成功，会抛出异常
+        return response.json().get("products", [])  # 返回产品列表，如果没有则返回空列表
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching product data: {e}")
+        return []  # 出错时返回空列表，或者根据需求返回其他默认值
 def query_data(product_name):
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=7) as executor:
         future_tequipment = executor.submit(get_tequipment, product_name)
         future_instrumart = executor.submit(get_instrumart, product_name)
         future_tester = executor.submit(get_tester, product_name)
         future_test_meter = executor.submit(get_test_meter, product_name)
         future_testequipmentdepot = executor.submit(get_testequipmentdepot, product_name)
         future_transcat = executor.submit(get_transcat, product_name)
+        future_testequity = executor.submit(get_testequity, product_name)
 
         results = []
 
@@ -270,6 +309,7 @@ def query_data(product_name):
         data_test_meter_list = future_test_meter.result()
         data_testequipmentdepot_list = future_testequipmentdepot.result()
         data_transcat_list = future_transcat.result()
+        data_testequity_list = future_testequity.result()
         if data_tequipment and "Products" in data_tequipment:
             for item in data_tequipment["Products"]:
                 results.append({
@@ -330,6 +370,14 @@ def query_data(product_name):
                     'name': data_transcat['title'],
                     'price': data_transcat['price'],
                     'link': data_transcat['url']
+                })
+        if data_testequity_list:
+            for data_testequity in data_testequity_list:
+                results.append({
+                    'source': 'testequity',
+                    'name': data_testequity['productTitle'],
+                    'price': data_testequity['unitListPriceDisplay'],
+                    'link': "https://www.testequity.com/"+data_testequity["canonicalUrl"]
                 })
         return results
 
