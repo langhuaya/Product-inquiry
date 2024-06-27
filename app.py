@@ -350,10 +350,56 @@ def get_grainger(Product_name):
     else:
         print("No JSON found in the HTML data.")
         return None
+def get_hken_rs(product_name):
+    cookies = {}
 
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'cache-control': 'max-age=0',
+        'priority': 'u=0, i',
+        'referer': 'https://hken.rs-online.com/web/',
+        'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Microsoft Edge";v="126"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+    }
+
+    params = {
+        'searchTerm': product_name,
+    }
+
+    try:
+        response = requests.get('https://hken.rs-online.com/web/c/', params=params, cookies=cookies, headers=headers)
+        response.raise_for_status()  # 确保请求成功
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+
+    try:
+        # 使用 BeautifulSoup 解析 HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 查找 <script> 标签并提取 JSON 数据
+        script_tag = soup.find('script', {'id': '__NEXT_DATA__', 'type': 'application/json'})
+        json_data = script_tag.string
+
+        # 解析 JSON 数据并赋值给变量 data
+        data = json.loads(json_data)
+
+        # 提取需要的数据
+        datas = data["props"]["pageProps"]["searchFilterResultsData"]["groupBySearchResults"]["resultsList"]["records"]
+        return datas
+    except (AttributeError, KeyError, json.JSONDecodeError) as e:
+        print(f"Data extraction failed: {e}")
+        return []
 
 def query_data(product_name):
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=9) as executor:
         future_tequipment = executor.submit(get_tequipment, product_name)
         future_instrumart = executor.submit(get_instrumart, product_name)
         future_tester = executor.submit(get_tester, product_name)
@@ -362,7 +408,7 @@ def query_data(product_name):
         future_transcat = executor.submit(get_transcat, product_name)
         future_testequity = executor.submit(get_testequity, product_name)
         future_grainger = executor.submit(get_grainger, product_name)
-
+        future_hken_rs = executor.submit(get_hken_rs, product_name)
         results = []
 
         data_tequipment = future_tequipment.result()
@@ -373,6 +419,7 @@ def query_data(product_name):
         data_transcat_list = future_transcat.result()
         data_testequity_list = future_testequity.result()
         data_grainger_list = future_grainger.result()
+        data_hken_rs_list = future_hken_rs.result()
         if data_tequipment and "Products" in data_tequipment:
             for item in data_tequipment["Products"]:
                 results.append({
@@ -450,6 +497,14 @@ def query_data(product_name):
                 'price': "$"+data_grainger['offers']["price"],
                 'link': data_grainger['offers']["url"]
             })
+        if data_hken_rs_list:
+            for data_hken_rs in data_hken_rs_list:
+                results.append({
+                    'source': 'data_hken_rs',
+                    'name': data_hken_rs["name"],
+                    'price': data_hken_rs["breakPrice"],
+                    'link': "https://hken.rs-online.com"+data_hken_rs["productUrl"]
+                })
         return results
 
 
