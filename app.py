@@ -500,7 +500,7 @@ def query_data(product_name):
         if data_hken_rs_list:
             for data_hken_rs in data_hken_rs_list:
                 results.append({
-                    'source': 'data_hken_rs',
+                    'source': 'hken_rs',
                     'name': data_hken_rs["name"],
                     'price': data_hken_rs["breakPrice"],
                     'link': "https://hken.rs-online.com"+data_hken_rs["productUrl"]
